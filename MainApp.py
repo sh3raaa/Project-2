@@ -110,28 +110,50 @@ def addEntry():
 
 #shows/adds what is selected in the listbox to the entry box
 def onSelect(event):
-
-        try:
-
-            index = listBoxWidget.curselection()[0]
-            food, cal, meal = eval(listBoxWidget.get(index))
-
-            foodEntry.delete(0, END)
-            foodEntry.insert(0, food)
-
-            caloEntry.delete(0, END)
-            caloEntry.insert(0, cal)
-
-            mealCombo.set(meal)
-            
-        except:
-            pass
-             
-def updateEntry(): 
-
+    try:
         index = listBoxWidget.curselection()[0]
+        item = listBoxWidget.get(index)
+
+        parts = item.split(" Cal: ")
+        food = parts[0]
+
+        cal_and_meal = parts[1].split(" Meal: ")
+        cal = cal_and_meal[0]
+        meal = cal_and_meal[1]
+
+        foodEntry.delete(0, END)
+        foodEntry.insert(0, food)
+        foodEntry.focus()
+
+        caloEntry.delete(0, END)
+        caloEntry.insert(0, cal)
+
+        mealCombo.set(meal)
+
+    except:
+        pass
+
+
+
+    
+def updateEntry():
+    try:
+        index = listBoxWidget.curselection()[0]
+
+        updated_food = foodEntry.get()
+        updated_cal = caloEntry.get()
+        updated_meal = mealCombo.get()
+
+        new_item = f"{updated_food} Cal: {updated_cal} Meal: {updated_meal}"
+
         listBoxWidget.delete(index)
-        listBoxWidget.insert(index, foodEntry.get())
+        listBoxWidget.insert(index, new_item)
+
+        listBoxWidget.select_set(index)
+        listBoxWidget.activate(index)
+
+    except:
+        pass
 
 def deleteEntry():
         
@@ -162,5 +184,5 @@ delete()
 meal()
 totalCal()
 listBox()
-root.config(menu=menu(), background= "lightblue") #to display the menu bar with its options, background color
+root.config(menu=menu(), background= "lightblue")
 root.mainloop()

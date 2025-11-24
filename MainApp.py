@@ -5,6 +5,8 @@ from tkinter import ttk, END
 totalCalories = 0
 listBoxList = []
 foodEntry = None
+caloEntry = None
+mealCombo = None
 listBox = None
 listBoxWidget= None
 
@@ -56,6 +58,7 @@ def food():
     foodEntry.grid(row=0, column= 1)
 
 def calorie():
+    global caloEntry
 
     calorie = tk.Label(mainFrame, text="Calories:",background="lightblue", fg = "black", font=("Arial", 12, "bold") )
     calorie.grid(row=0, column=3)
@@ -64,6 +67,8 @@ def calorie():
     caloEntry.grid(row=0, column= 4, sticky="")
 
 def meal ():
+
+    global mealCombo
 
     meal = tk.Label(mainFrame, text="Meal type:", bg = "lightblue", fg= "black", font=("Arial", 12, "bold") )
     meal.grid(row=1,column=1)
@@ -94,18 +99,35 @@ def listBox():
     listBoxWidget.grid(row=3, column=2)
 
 def addEntry():
-    foodText = foodEntry.get()
-    listBoxWidget.insert(END, foodText)  #f string ts
+
+    food = foodEntry.get()
+    cal = caloEntry.get()
+    meal = mealCombo.get()
+
+    item = f"{food} Cal: {cal} Meal: {meal}"
+
+    listBoxWidget.insert(END, item)
 
 #shows/adds what is selected in the listbox to the entry box
 def onSelect(event):
 
-        index = listBoxWidget.curselection()[0]
-        foodEntry.delete(0, END)
-        foodEntry.insert(0, listBoxWidget.get(index))
+        try:
 
+            index = listBoxWidget.curselection()[0]
+            food, cal, meal = eval(listBoxWidget.get(index))
 
-def updateEntry():
+            foodEntry.delete(0, END)
+            foodEntry.insert(0, food)
+
+            caloEntry.delete(0, END)
+            caloEntry.insert(0, cal)
+
+            mealCombo.set(meal)
+            
+        except:
+            pass
+             
+def updateEntry(): 
 
         index = listBoxWidget.curselection()[0]
         listBoxWidget.delete(index)

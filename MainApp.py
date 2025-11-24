@@ -90,16 +90,31 @@ def delete():
 def listBox():
     global listBoxWidget
     listBoxWidget = tk.Listbox(mainFrame)
+    listBoxWidget.bind("<<ListboxSelect>>", onSelect)
     listBoxWidget.grid(row=3, column=2)
 
 def addEntry():
     foodText = foodEntry.get()
-    listBoxWidget.insert(END, foodText)#f string ts
-    
+    listBoxWidget.insert(END, foodText)  #f string ts
+
+#shows/adds what is selected in the listbox to the entry box
+def onSelect(event):
+
+        index = listBoxWidget.curselection()[0]
+        foodEntry.delete(0, END)
+        foodEntry.insert(0, listBoxWidget.get(index))
+
+
 def updateEntry():
-    pass
+
+        index = listBoxWidget.curselection()[0]
+        listBoxWidget.delete(index)
+        listBoxWidget.insert(index, foodEntry.get())
+
 def deleteEntry():
-    pass
+        
+        index = listBoxWidget.curselection()[0]
+        listBoxWidget.delete(index)
 
 #WINDOWS (OPENING NEW/CLOSING WINDOWS)
 def CreateWindow():

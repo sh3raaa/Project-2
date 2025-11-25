@@ -52,42 +52,46 @@ def title():
 
 # TOTAL CALORIES
 def totalCal():
-   totalCalLabel = tk.Label(
-       bottomFrame,
-       text=f"Total Calories: {totalCalories}",
-       fg="white",
-       bg=DARK,
-       font=("Arial", 15, "bold underline")
-   )
-   totalCalLabel.pack(pady=10)
+    global totalCalLabel
+    totalCalLabel = tk.Label(
+        bottomFrame,
+        text=f"Total Calories: {totalCalories}",
+        fg="white",
+        bg=DARK,
+        font=("Arial", 15, "bold underline")
+    )
+    totalCalLabel.pack(pady=10)
+
+# NEW: Update label
+def updateTotalCalories():
+    totalCalLabel.config(text=f"Total Calories: {totalCalories}")
 
 # FOOD LABEL + ENTRY
 def food():
-   global foodEntry
-   foodLabel = tk.Label(
-       mainFrame, text="Food Name:",
-       bg=LIGHT, fg="black",
-       font=("Arial", 12, "bold")
-   )
-   foodLabel.grid(row=0, column=0)
+    global foodEntry
+    foodLabel = tk.Label(
+        mainFrame, text="Food Name:",
+        bg=LIGHT, fg="black",
+        font=("Arial", 12, "bold")
+    )
+    foodLabel.grid(row=0, column=0)
 
-   foodEntry = tk.Entry(mainFrame, bd=1, relief="solid")
-   foodEntry.grid(row=0, column=1)
+    foodEntry = tk.Entry(mainFrame, bd=1, relief="solid")
+    foodEntry.grid(row=0, column=1)
 
 
 # CALORIE LABEL + ENTRY
 def calorie():
-   global caloEntry
-   calLabel = tk.Label(
-       mainFrame, text="Calories:",
-       bg=LIGHT, fg="black",
-       font=("Arial", 12, "bold")
-   )
-   calLabel.grid(row=0, column=3)
+    global caloEntry
+    calLabel = tk.Label(
+        mainFrame, text="Calories:",
+        bg=LIGHT, fg="black",
+        font=("Arial", 12, "bold")
+    )
+    calLabel.grid(row=0, column=3)
 
-   caloEntry = tk.Entry(mainFrame, bd=1, relief="solid")
-   caloEntry.grid(row=0, column=4)
-
+    caloEntry = tk.Entry(mainFrame, bd=1, relief="solid")
+    caloEntry.grid(row=0, column=4)
 
 # MEAL TYPE COMBOBOX
 def meal():
@@ -142,15 +146,26 @@ def listBox():
    listBoxWidget.grid(row=3, column=2, sticky="nsew")
 
 
-# LOGIC: ADD ENTRY
+# LOGIC: ADD ENTRY + ADD TO TOTAL CALORIE
 def addEntry():
-   food = foodEntry.get()
-   cal = caloEntry.get()
-   meal = mealCombo.get()
+    global totalCalories
 
-   item = f"{food} Cal: {cal} Meal: {meal}"
-   listBoxWidget.insert(END, item)
+    food = foodEntry.get()
+    cal = caloEntry.get()
+    meal = mealCombo.get()
 
+    if not food or not cal:
+        return
+
+    try:
+        cal_int = int(cal)
+        totalCalories += cal_int
+        updateTotalCalories()
+    except:
+        return
+
+    item = f"{food} Cal: {cal} Meal: {meal}"
+    listBoxWidget.insert(END, item)
 
 # LOGIC: WHEN SELECTED
 def onSelect(event):

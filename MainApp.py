@@ -1,243 +1,310 @@
 import tkinter as tk
-from tkinter import ttk, END
-
-#VARIABLES
-totalCalories = 0
-foodEntry = None
-caloEntry = None
-mealCombo = None
-listBoxWidget = None
-
-#ROOT
-root = tk.Tk()
-root.title("Calorie App")
-root.geometry("700x500")
-
-# ----- COLOR PALETTE -----
-DARK = "#2C3E50"        # Header/footer
-LIGHT = "#ECF0F1"       # Main area
-BUTTON = "#3498DB"      # Button background
-BUTTON_ACTIVE = "#2980B9"  # Button when clicked
-
-#FRAMES
-titleFrame = tk.Frame(root, bg=DARK)
-titleFrame.pack(fill="x")
-
-mainFrame = tk.Frame(root, bg=LIGHT)
-mainFrame.pack(fill="both", expand=True)
-
-bottomFrame = tk.Frame(root, bg=DARK)
-bottomFrame.pack(fill="x", side="bottom")
+from tkinter import ttk, messagebox, END, filedialog
+from entryForm import EntryForm
+from caloriesDatabase import CalorieDatabase
+from statsWindow import StatsWindow
+import json
+from tkinter import font
 
 
-# GRID SETUP
-for r in range(3):
-   mainFrame.rowconfigure(r, weight=1, uniform="row")
+class MainApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Calorie Tracker - OurCal")
+        self.root.geometry("900x600")
+        self.root.resizable(True, True)
 
-for c in range(5):
-   mainFrame.columnconfigure(c, weight=1, uniform="column")
+        #colors
+        self.darkColor = "#34495E"
+        self.lightColor = "#E9F6FB"
+        self.buttonColor = "#2E86C1"
+        self.buttonActiveColor = "#1B4F72"
 
+        #fonts (named fonts)
+        self.titleFont = font.Font(family="Arial", size=18, weight="bold")
+        self.labelFont = font.Font(family="Arial", size=12, weight="bold")
+        self.buttonFont = font.Font(family="Arial", size=10, weight="bold")
+        self.entryFont = font.Font(family="Arial", size=11)
 
-# TITLE
-def title():
-   title = tk.Label(
-       titleFrame,
-       text="Welcome to ourCal",
-       background=DARK,
-       fg="white",
-       font=("Arial", 16, "bold")
-   )
-   title.pack(pady=8)
+        #ttk style for Combobox
+        style = ttk.Style()
+        style.configure("My.TCombobox", font=self.entryFont)
 
+        #the database connection
+        self.database = CalorieDatabase()
+        self.entriesList = self.database.loadData()
+        self.totalCalories = 0
+        self.calculateTotalCalories()
 
-# TOTAL CALORIES
-def totalCal():
-    global totalCalLabel
-    totalCalLabel = tk.Label(
-        bottomFrame,
-        text=f"Total Calories: {totalCalories}",
-        fg="white",
-        bg=DARK,
-        font=("Arial", 15, "bold underline")
-    )
-    totalCalLabel.pack(pady=10)
+        #frames
+        self.titleFrame = tk.Frame(root, bg=self.darkColor)
+        self.titleFrame.pack(fill="x")
 
-# NEW: Update label
-def updateTotalCalories():
-    totalCalLabel.config(text=f"Total Calories: {totalCalories}")
+        self.mainFrame = tk.Frame(root, bg=self.lightColor)
+        self.mainFrame.pack(fill="both", expand=True)
 
-# FOOD LABEL + ENTRY
-def food():
-    global foodEntry
-    foodLabel = tk.Label(
-        mainFrame, text="Food Name:",
-        bg=LIGHT, fg="black",
-        font=("Arial", 12, "bold")
-    )
-    foodLabel.grid(row=0, column=0)
+        self.bottomFrame = tk.Frame(root, bg=self.darkColor)
+        self.bottomFrame.pack(fill="x", side="bottom")
 
-    foodEntry = tk.Entry(mainFrame, bd=1, relief="solid")
-    foodEntry.grid(row=0, column=1)
+        #main grid spacing
+        for r in range(5):
+            self.mainFrame.rowconfigure(r, weight=1)
+        for c in range(7):
+            self.mainFrame.columnconfigure(c, weight=1)
 
+        self.createTitle()
+        self.entryForm = EntryForm(self.mainFrame, bg=self.lightColor)
+        self.createButtons()
+        self.createListbox()
+        self.createTotalCaloriesLabel()
+        self.populateListbox()
 
-# CALORIE LABEL + ENTRY
-def calorie():
-    global caloEntry
-    calLabel = tk.Label(
-        mainFrame, text="Calories:",
-        bg=LIGHT, fg="black",
-        font=("Arial", 12, "bold")
-    )
-    calLabel.grid(row=0, column=3)
+        #create menu
+        self.root.config(menu=self.createMenu())
 
-    caloEntry = tk.Entry(mainFrame, bd=1, relief="solid")
-    caloEntry.grid(row=0, column=4)
+    #title of aapp
+    def createTitle(self):
+        titleLabel = tk.Label(
+            self.titleFrame,
+            text="Welcome to OurCal - Calorie Tracker",
+            bg=self.darkColor,
+            fg="white",
+            font=self.titleFont,  # replaced font
+            pady=8
+        )
+        titleLabel.pack()
 
-# MEAL TYPE COMBOBOX
-def meal():
-   global mealCombo
-   mealLabel = tk.Label(
-       mainFrame, text="Meal type:",
-       bg=LIGHT, fg="black",
-       font=("Arial", 12, "bold")
-   )
-   mealLabel.grid(row=1, column=1)
+    #function of the buttons
+    def createButtons(self):
+        #add button
+        addButton = tk.Button(
+            self.mainFrame, text="Add Entry", command=self.addEntry,
+            bg=self.buttonColor, fg="white", font=self.buttonFont,  # replaced font
+            activebackground=self.buttonActiveColor
+        )
+        addButton.grid(row=2, column=1, padx=10, pady=8, sticky="nsew")
 
-   mealCombo = ttk.Combobox(mainFrame, values=["Breakfast", "Lunch", "Dinner", "Snack"])
-   mealCombo.grid(row=1, column=2)
+        #update button
+        updateButton = tk.Button(
+            self.mainFrame, text="Update Entry", command=self.updateEntry,
+            bg=self.buttonColor, fg="white", font=self.buttonFont,  # replaced font
+            activebackground=self.buttonActiveColor
+        )
+        updateButton.grid(row=2, column=3, padx=10, pady=8, sticky="nsew")
 
+        #delete button
+        deleteButton = tk.Button(
+            self.mainFrame, text="Delete Entry", command=self.deleteEntry,
+            bg=self.buttonColor, fg="white", font=self.buttonFont,  # replaced font
+            activebackground=self.buttonActiveColor
+        )
+        deleteButton.grid(row=2, column=5, padx=10, pady=8, sticky="nsew")
 
-# BUTTONS
-def add():
-   addBtn = tk.Button(
-       mainFrame, text="Add Entry", command=addEntry,
-       bg=BUTTON, fg="white",
-       activebackground=BUTTON_ACTIVE,
-       activeforeground="white"
-   )
-   addBtn.grid(row=2, column=0)
+        #the clear and quit buttons
+        clearButton = tk.Button(
+            self.bottomFrame, text="Clear All", command=self.clearAll,
+            bg="#E74C3C", fg="white", font=self.buttonFont,  # replaced font
+            activebackground="#C0392B"
+        )
+        clearButton.pack(side="right", padx=10, pady=10)
 
+        quitButton = tk.Button(
+            self.bottomFrame, text="Quit", command=self.confirmQuit,
+            bg="#95A5A6", fg="white", font=self.buttonFont,  # replaced font
+            activebackground="#7F8C8D"
+        )
+        quitButton.pack(side="right", padx=10, pady=10)
 
-def update():
-   updateBtn = tk.Button(
-       mainFrame, text="Update Entry", command=updateEntry,
-       bg=BUTTON, fg="white",
-       activebackground=BUTTON_ACTIVE,
-       activeforeground="white"
-   )
-   updateBtn.grid(row=2, column=2)
+    #listbox that has the entries
+    def createListbox(self):
+        self.listbox = tk.Listbox(self.mainFrame, font=self.entryFont, exportselection=False)  # replaced font
+        self.listbox.grid(row=3, column=1, columnspan=5,
+                        sticky="nsew", padx=20, pady=12)
+        self.listbox.bind("<<ListboxSelect>>", self.onSelect)
+        scrollbar = tk.Scrollbar(self.mainFrame, orient="vertical",
+                                command=self.listbox.yview)
+        self.listbox.config(yscrollcommand=scrollbar.set)
+        scrollbar.grid(row=3, column=6, sticky="ns", pady=12)
 
+    def populateListbox(self):
+        self.listbox.delete(0, END)
+        for entry in self.entriesList:
+            item = f"{entry['food']} - Cal: {entry['calories']} - Meal: {entry['meal']}"
+            self.listbox.insert(END, item)
 
-def delete():
-   deleteBtn = tk.Button(
-       mainFrame, text="Delete Entry", command=deleteEntry,
-       bg=BUTTON, fg="white",
-       activebackground=BUTTON_ACTIVE,
-       activeforeground="white"
-   )
-   deleteBtn.grid(row=2, column=4)
+    #the total calo label
+    def createTotalCaloriesLabel(self):
+        self.totalLabel = tk.Label(
+            self.bottomFrame,
+            text=f"Total Calories: {self.totalCalories}",
+            fg="white", bg=self.darkColor,
+            font=self.labelFont  # replaced font
+        )
+        self.totalLabel.pack(pady=10)
 
+    def updateTotalLabel(self):
+        self.totalLabel.config(text=f"Total Calories: {self.totalCalories}")
 
-# LISTBOX
-def listBox():
-   global listBoxWidget
-   listBoxWidget = tk.Listbox(mainFrame, bg="white", fg="black")
-   listBoxWidget.bind("<<ListboxSelect>>", onSelect)
-   listBoxWidget.grid(row=3, column=2, sticky="nsew")
+    def calculateTotalCalories(self):
+        total = 0
+        for e in self.entriesList:
+            try:
+                total += int(e.get("calories", 0))
+            except:
+                pass
+        self.totalCalories = total
 
+    def addEntry(self):
+        food = self.entryForm.foodEntry.get().strip()
+        cal = self.entryForm.calEntry.get().strip()
+        meal = self.entryForm.mealCombo.get().strip()
 
-# LOGIC: ADD ENTRY + ADD TO TOTAL CALORIE
-def addEntry():
-    global totalCalories
+        if not food or not cal or not meal:
+            messagebox.showerror("Error", "Please fill in all fields.")
+            return
 
-    food = foodEntry.get()
-    cal = caloEntry.get()
-    meal = mealCombo.get()
+        try:
+            cal_int = int(cal)
+        except ValueError:
+            messagebox.showerror("Error", "Calories must be a number.")
+            return
 
-    if not food or not cal:
-        return
+        self.entriesList.append({
+            "food": food,
+            "calories": str(cal_int),
+            "meal": meal
+        })
 
-    try:
-        cal_int = int(cal)
-        totalCalories += cal_int
-        updateTotalCalories()
-    except:
-        return
+        self.database.saveData(self.entriesList)
+        self.calculateTotalCalories()
+        self.updateTotalLabel()
+        self.populateListbox()
+        self.entryForm.clearFields()
 
-    item = f"{food} Cal: {cal} Meal: {meal}"
-    listBoxWidget.insert(END, item)
+    #this function handles listbox selection and fills the input fields with the selected entry's data
+    def onSelect(self, event):
+        try:
+            index = self.listbox.curselection()[0]
+            entry = self.entriesList[index]
 
-# LOGIC: WHEN SELECTED
-def onSelect(event):
-   try:
-       index = listBoxWidget.curselection()[0]
-       item = listBoxWidget.get(index)
+            self.entryForm.foodEntry.delete(0, END)
+            self.entryForm.foodEntry.insert(0, entry["food"])
 
-       parts = item.split(" Cal: ")
-       food = parts[0]
+            self.entryForm.calEntry.delete(0, END)
+            self.entryForm.calEntry.insert(0, entry["calories"])
 
-       cal_and_meal = parts[1].split(" Meal: ")
-       cal = cal_and_meal[0]
-       meal = cal_and_meal[1]
+            # DO NOT auto-select/highlight combobox text
+            self.entryForm.mealCombo.set(entry["meal"])
+            self.entryForm.mealCombo.event_generate('<FocusOut>')
+            self.entryForm.mealCombo.selection_clear()
 
-       foodEntry.delete(0, END)
-       foodEntry.insert(0, food)
+        except:
+            pass
 
-       caloEntry.delete(0, END)
-       caloEntry.insert(0, cal)
+    #a function that updates the currently selected listbox entry using the form inputs
+    def updateEntry(self):
+        try:
+            index = self.listbox.curselection()[0]
+        except:
+            messagebox.showerror("Error", "Pick an entry to update.")
+            return
 
-       mealCombo.set(meal)
+        food = self.entryForm.foodEntry.get().strip()
+        cal = self.entryForm.calEntry.get().strip()
+        meal = self.entryForm.mealCombo.get().strip()
 
-   except:
-       pass
+        if not food or not cal or not meal:
+            messagebox.showerror("Error", "Please fill in all fields.")
+            return
 
+        try:
+            cal_int = int(cal)
+        except:
+            messagebox.showerror("Error", "Calories must be a number.")
+            return
 
-# LOGIC: UPDATE
-def updateEntry():
-   try:
-       index = listBoxWidget.curselection()[0]
+        #update data list
+        self.entriesList[index] = {
+            "food": food,
+            "calories": str(cal_int),
+            "meal": meal
+        }
 
-       updated_food = foodEntry.get()
-       updated_cal = caloEntry.get()
-       updated_meal = mealCombo.get()
+        #save & refresh
+        self.database.saveData(self.entriesList)
+        self.calculateTotalCalories()
+        self.updateTotalLabel()
+        self.populateListbox()
 
-       new_item = f"{updated_food} Cal: {updated_cal} Meal: {updated_meal}"
+        self.listbox.select_set(index)
+        self.listbox.activate(index)
+        self.entryForm.clearFields()
 
-       listBoxWidget.delete(index)
-       listBoxWidget.insert(index, new_item)
-       listBoxWidget.select_set(index)
+    #a function to delete a selectred entry and it shows a pop window (message box) up asking if u actually want to delete
+    def deleteEntry(self):
+        try:
+            index = self.listbox.curselection()[0]
+        except:
+            messagebox.showerror("Error", "Pick an entry to delete.")
+            return
 
-   except:
-       pass
+        if messagebox.askyesno("Confirm", "Delete this entry?"):
+            del self.entriesList[index]
+            self.database.saveData(self.entriesList)
+            self.calculateTotalCalories()
+            self.updateTotalLabel()
+            self.populateListbox()
+            self.entryForm.clearFields()
 
+    #a func for the clear all button, it clears all entries added  and also shows a message box to confirm
+    def clearAll(self):
+        if messagebox.askyesno("Confirm", "Clear ALL entries?"):
+            self.entriesList = []
+            self.database.saveData(self.entriesList)
+            self.calculateTotalCalories()
+            self.updateTotalLabel()
+            self.populateListbox()
+            self.entryForm.clearFields()
 
-# LOGIC: DELETE
-def deleteEntry():
-   try:
-       index = listBoxWidget.curselection()[0]
-       listBoxWidget.delete(index)
-   except:
-       pass
+    #a function to quit the whole calo app
+    def confirmQuit(self):
+        if messagebox.askyesno("Quit", "Exit the program?"):
+            self.root.quit()
 
+    #a function to save the entries as a JSON file
+    def saveAs(self):
+        filename = filedialog.asksaveasfilename(
+            defaultextension=".json",
+            filetypes=[("JSON Files", "*.json")]
+        )
 
-# MENU (unchanged)
-def menu():
-   menuBar = tk.Menu(root)
-   fileOpt = tk.Menu(menuBar, tearoff=0)
-   menuBar.add_cascade(label="Choices", menu=fileOpt)
-   return menuBar
+        if not filename:
+            return
 
+        try:
+            with open(filename, "w") as f:
+                json.dump(self.entriesList, f, indent=2)
 
-# INIT
-title()
-food()
-calorie()
-meal()
-add()
-update()
-delete()
-totalCal()
-listBox()
+            messagebox.showinfo("Saved", "File saved successfully")
+        except:
+            messagebox.showerror("Error", "Could not save file")
 
-root.config(menu=menu(), bg=LIGHT)
-root.mainloop()
+    #opens the statistics window with the current entries
+    def openStats(self):
+        StatsWindow(self.root, self.entriesList)
+
+    #a function for the menu bar at the top
+    def createMenu(self):
+        menuBar = tk.Menu(self.root)
+        menu = tk.Menu(menuBar, tearoff=0)
+
+        menu.add_command(label="View Stats", command=self.openStats)
+        menu.add_command(label="Save As...", command=self.saveAs)
+
+        menuBar.add_cascade(label="Options", menu=menu)
+        return menuBar
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = MainApp(root)
+    root.mainloop()

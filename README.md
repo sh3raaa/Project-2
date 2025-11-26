@@ -64,8 +64,6 @@ A simple bar chart showing:
 OR
 	•	A clean visualization of calorie distribution
 
-(No dates or daily goal stuff — professor-approved.)
-
 ⸻
 
 7. JSON Saving

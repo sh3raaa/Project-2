@@ -1,3 +1,5 @@
+Group members: Mohamad El Chaar, Mahmood Sultan, Daphne, Toqa Alshwatreh
+
 OurCal – Calorie Tracking App
 
 CCT211 Project 2: Persistent Form
